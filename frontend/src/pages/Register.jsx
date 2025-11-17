@@ -1,91 +1,189 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import React, { useState, useEffect } from "react";
+import { object, string } from "yup";
+import { toast } from "react-toastify";
 
-export default function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router";
+import {
+  useRegisterMutation,
+  useSendOtpMutation,
+  useVerifyOtpMutation,
+} from "../features/api/apiSlices/userApiSlice";
+import { setCredentials } from "../features/authenticate/authSlice";
+import { updateLoader } from "../features/loader/loaderSlice";
+
+import registerImg from "../assets/register.webp";
+import { UserAuthForm, OtpForm } from "../components/Forms";
+import validateForm from "../utils/validateForm";
+import { UsernameInput, EmailInput, PasswordInput } from "../components/Inputs";
+import SubmitButton from "../components/SubmitButton";
+
+const Register = () => {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [countdown, setCountdown] = useState(
+    parseInt(localStorage.getItem("otpCountdown")) || 0
+  );
+
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState(1); // 1: registration, 2: OTP verification
+
+  const validationSchema = object({
+    username: string()
+      .required("Username is required.")
+      .min(3, "Username must be atleast 3 characters long.")
+      .max(20, "Username should not be more than 20 characters."),
+    email: string().required("Email is required.").email("Invalid Email."),
+    password: string()
+      .required("Password is required.")
+      .min(8, "Password must be atleast 8 characters long."),
+  });
+
+  const handleOnChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    validateForm(e.target.name, e.target.value, validationSchema, setErrors);
+  };
+
+  const { username, email, password } = formData;
+  const [register, { isLoading: registerLoading }] = useRegisterMutation();
+  const [sendOtp] = useSendOtpMutation();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
     try {
-      const response = await api.post('/auth/register', { name, email, password });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Registration failed');
+      e.preventDefault();
+
+      dispatch(updateLoader(40));
+      const res = await register(formData).unwrap();
+      await dispatch(setCredentials(res.user));
+      await sendOtp({ email });
+      setCountdown(60);
+      await localStorage.setItem("otpCountdown", "60");
+
+      dispatch(updateLoader(60));
+      toast.success("OTP sent successfully. Please check your email!");
+
+      setStep(2);
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
     } finally {
-      setLoading(false);
+      dispatch(updateLoader(100));
     }
   };
 
+  const [verifyOtp, { isLoading: verifyOtpLoading }] = useVerifyOtpMutation();
+
+  const handleOtpSubmit = async (e) => {
+    try {
+      e.preventDefault();
+
+      await dispatch(updateLoader(40));
+      const otpRes = await verifyOtp({ email, otp }).unwrap();
+
+      await dispatch(updateLoader(60));
+      await dispatch(setCredentials(otpRes.user));
+      toast.success(otpRes.message || "Email has been verified successfully!");
+
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
+    } finally {
+      dispatch(updateLoader(100));
+    }
+  };
+  const resendOtp = async (e) => {
+    try {
+      e.preventDefault();
+
+      dispatch(updateLoader(40));
+      const otpRes = await sendOtp({ email }).unwrap();
+
+      dispatch(updateLoader(70));
+      toast.success(
+        otpRes.message || "OTP sent successfully. Please check your email!"
+      );
+      setCountdown(60);
+      localStorage.setItem("otpCountdown", "60");
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
+    } finally {
+      dispatch(updateLoader(100));
+    }
+  };
+
+  const hasErrors = Object.values(errors).some((error) => !!error);
+
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+        localStorage.setItem("otpCountdown", (countdown - 1).toString());
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              sign in to your existing account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="space-y-4">
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Full name"
+    <section className="w-full h-[90vh] px-6 sm:px-8 md:px-12 flex justify-center items-center">
+      <UserAuthForm
+        title={step === 1 ? "Register Now" : "Verify Your Email"}
+        imageTitle="Easy to Use."
+        imageSrc={registerImg}
+        alt="registration image"
+        form={
+          step === 1 ? (
+            <>
+              <UsernameInput
+                value={username}
+                onChange={handleOnChange}
+                errors={errors}
+              />
+              <EmailInput
+                value={email}
+                onChange={handleOnChange}
+                errors={errors}
+              />
+              <PasswordInput
+                value={password}
+                onChange={handleOnChange}
+                errors={errors}
+              />
+              <SubmitButton
+                isLoading={registerLoading}
+                handleSubmit={handleSubmit}
+                isDisabled={!email || !password || !username || hasErrors}
+              />
+            </>
+          ) : (
+            <OtpForm
+              otp={otp}
+              setOtp={setOtp}
+              email={email}
+              handleOtpSubmit={handleOtpSubmit}
+              resendOtp={resendOtp}
+              countdown={countdown}
+              verifyOtpLoading={verifyOtpLoading}
             />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Email address"
-            />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Password"
-            />
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? 'Creating account...' : 'Create account'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          )
+        }
+        footer={step === 1 && "Already have an account?"}
+        footerLink={step === 1 && "Login"}
+        footerLinkPath={step === 1 && "/login"}
+      />
+    </section>
   );
-}
+};
 
+export default Register;

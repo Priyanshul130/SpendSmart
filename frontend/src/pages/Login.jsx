@@ -1,86 +1,188 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import React, { useState, useEffect } from "react";
+import { object, string } from "yup";
+import { toast } from "react-toastify";
 
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router";
+import {
+  useLoginMutation,
+  useSendOtpMutation,
+  useVerifyOtpMutation,
+} from "../features/api/apiSlices/userApiSlice";
+import { setCredentials } from "../features/authenticate/authSlice";
+import { updateLoader } from "../features/loader/loaderSlice";
+
+import loginImg from "../assets/login.webp";
+import { UserAuthForm, OtpForm } from "../components/Forms";
+import validateForm from "../utils/validateForm";
+import { EmailInput, PasswordInput } from "../components/Inputs";
+import SubmitButton from "../components/SubmitButton";
+
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [countdown, setCountdown] = useState(
+    parseInt(localStorage.getItem("otpCountdown")) || 0
+  );
+
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState(1); // 1: Login, 2:(if user is not verified) OTP verification
+
+  const validationSchema = object({
+    email: string().required("Email is required.").email("Invalid Email."),
+    password: string()
+      .required("Password is required.")
+      .min(8, "Password must be atleast 8 characters long."),
+  });
+
+  const handleOnChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    validateForm(e.target.name, e.target.value, validationSchema, setErrors);
+  };
+
+  const { email, password } = formData;
+  const [login, { isLoading: loginLoading }] = useLoginMutation();
+  const [sendOtp] = useSendOtpMutation();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
     try {
-      const response = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Login failed');
+      e.preventDefault();
+
+      dispatch(updateLoader(40));
+      const res = await login(formData).unwrap();
+
+      dispatch(updateLoader(60));
+      await dispatch(setCredentials(res.user));
+      toast.success(res.message || "Logged in successfully!");
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      if (error?.data?.user?.verified === false) {
+        await sendOtp({ email });
+        await dispatch(updateLoader(60));
+        setCountdown(60);
+        await localStorage.setItem("otpCountdown", "60");
+        setStep(2);
+        toast.error(
+          error?.data?.error || "Please verify your email via to proceed."
+        );
+        return;
+      }
+
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
     } finally {
-      setLoading(false);
+      dispatch(updateLoader(100));
     }
   };
 
+  const [verifyOtp, { isLoading: verifyOtpLoading }] = useVerifyOtpMutation();
+  const handleOtpSubmit = async (e) => {
+    try {
+      e.preventDefault();
+
+      dispatch(updateLoader(40));
+      const otpRes = await verifyOtp({ email, otp }).unwrap();
+
+      dispatch(updateLoader(70));
+      toast.success(
+        otpRes.message ||
+          "Email is verified successfully. Please login to proceed!"
+      );
+      setStep(1);
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
+    } finally {
+      dispatch(updateLoader(100));
+    }
+  };
+
+  const resendOtp = async (e) => {
+    try {
+      e.preventDefault();
+
+      dispatch(updateLoader(40));
+      const otpRes = await sendOtp({ email }).unwrap();
+
+      dispatch(updateLoader(70));
+      toast.success(
+        otpRes.message || "OTP sent successfully. Please check your email!"
+      );
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.data?.error || "Unexpected Internal Server Error!");
+      setCountdown(60);
+      localStorage.setItem("otpCountdown", "60");
+    } finally {
+      dispatch(updateLoader(100));
+    }
+  };
+
+  const hasErrors = Object.values(errors).some((error) => !!error);
+
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+        localStorage.setItem("otpCountdown", (countdown - 1).toString());
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to SpendSmart
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-              create a new account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <input
-                type="email"
-                required
+    <section className="w-full h-[90vh] px-6 sm:px-8 md:px-12 flex justify-center items-center">
+      <UserAuthForm
+        title={step === 1 ? "Welcome Back!" : "Verify your Email"}
+        imageSrc={loginImg}
+        imageTitle="Start using Now."
+        alt="login image"
+        form={
+          step === 1 ? (
+            <>
+              <EmailInput
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                onChange={handleOnChange}
+                errors={errors}
               />
-            </div>
-            <div>
-              <input
-                type="password"
-                required
+              <PasswordInput
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                onChange={handleOnChange}
+                errors={errors}
               />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <SubmitButton
+                isLoading={loginLoading}
+                handleSubmit={handleSubmit}
+                isDisabled={!email || !password || hasErrors}
+              />
+            </>
+          ) : (
+            <OtpForm
+              otp={otp}
+              setOtp={setOtp}
+              email={email}
+              handleOtpSubmit={handleOtpSubmit}
+              resendOtp={resendOtp}
+              countdown={countdown}
+              verifyOtpLoading={verifyOtpLoading}
+            />
+          )
+        }
+        footer={step === 1 && "Don't have an account?"}
+        footerLink={step === 1 && "Register"}
+        footerLinkPath={step === 1 && "/register"}
+      />
+    </section>
   );
-}
+};
 
+export default Login;

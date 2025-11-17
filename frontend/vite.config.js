@@ -1,16 +1,19 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import removeConsole from "vite-plugin-remove-console";
 
-export default defineConfig({
-  plugins: [react()],
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), mode === "production" && removeConsole()].filter(Boolean),
   server: {
-    port: 3000,
+    host: true,
+    strictPort: true,
+    port: 8080,
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      }
-    }
-  }
-})
-
+      "/api/v1": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
+  },
+}));

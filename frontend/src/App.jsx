@@ -1,64 +1,53 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
-import AddTransaction from './pages/AddTransaction';
-import './styles/index.css';
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import { ToastContainer, Slide } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-function App() {
+import TopLoadingBar from "./components/TopLoadingBar";
+import {
+  Home,
+  NotFound,
+  Register,
+  Login,
+  Dashboard,
+  MainDashboard,
+  Incomes,
+  Expenses,
+  Settings,
+} from "./pages";
+import { PublicRoutes, ProtectedRoutes } from "./components/Guards";
+
+const App = () => {
   return (
-    <Router>
+    <>
+      <TopLoadingBar />
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2500}
+        pauseOnHover={false}
+        theme="dark"
+        transition={Slide}
+        toastClassName="font-outfit max-w-xs rounded-lg ml-4 sm:ml-0 mb-2"
+      />
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/transactions"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Transactions />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/add-transaction"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AddTransaction />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/" element={<PublicRoutes />}>
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+        </Route>
+        <Route path="/" element={<ProtectedRoutes />}>
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route path="/dashboard" element={<MainDashboard />} />
+            <Route path="/dashboard/incomes" element={<Incomes />} />
+            <Route path="/dashboard/expenses" element={<Expenses />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </Router>
+    </>
   );
-}
+};
 
 export default App;
-
