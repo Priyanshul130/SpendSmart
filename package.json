@@ -11,14 +11,16 @@
     "transaction management",
     "user-friendly"
   ],
-  "author": "Shourya Saxena",
-  "license": "MIT",
+  "author": "Priyanshul Sharma",
   "description": "Spend Smart is a user-friendly platform designed to streamline your financial management effortlessly. With Spend Smart, you can easily track expenses, manage income, and stay on top of your finances effortlessly. Easily add transactions,and navigate your dashboard with ease. Take control of your finances with Spend Smart.",
   "scripts": {
-    "setup": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\"",
-    "dev": "concurrently \"cd backend && npm run dev\"  \"cd frontend && npm run dev\""
+    "setup": "cd backend && npm install\" \"cd frontend && npm install\"",
+    "dev": "cd backend && npm run dev\"  \"cd frontend && npm run dev\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "setup": "^0.0.3"
   }
 }
