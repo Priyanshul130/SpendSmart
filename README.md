@@ -47,12 +47,12 @@ Follow these steps to set up Spend Smart on your local machine:
 ### Clone the repository:
 
 ```bash
-git clone https://github.com/SaxenaShourya/spend-smart.git
+git clone https://github.com/priyanshul130/SpendSmart.git
 ```
 
 ### Make the .env file in backend directory
 
-Create a `.env` file based of `env.example` in the backend directory and save it as .env.
+Update a `.env` file 
 
 ```bash
 cd backend
