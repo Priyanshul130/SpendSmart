@@ -93,27 +93,15 @@ npm run dev
 
 During the development of Spend Smart, I gained valuable experience in several key areas:
 
-- **Full-Stack Development** 💻: I learned how to develop both frontend and backend components of a web application, enabling me to create a seamless user experience from start to finish.
-- **React.js** ⚛️: I honed my skills in React.js, leveraging its component-based architecture to build dynamic and interactive user interfaces.
-- **Node.js and Express.js** 🚀: I became proficient in using Node.js and Express.js to create a scalable and efficient backend server, handling authentication, data storage, and API endpoints.
-- **MongoDB and Mongoose** 🍃: I learned how to work with MongoDB, a NoSQL database, and Mongoose, an object modeling tool, to store and manage data for Spend Smart.
-- **User Authentication** 🔒: I implemented secure user authentication using JWT (JSON Web Tokens), ensuring that user data remains protected and accessible only to authorized users.
-- **State Management** 🔄: I utilized Redux for state management in the frontend, enabling efficient data flow and ensuring consistency across the application.
-- **Deployment** 🚀: I gained experience in deploying web applications, learning how to deploy both the frontend and backend components to cloud platforms like Vercel, Docker.
-- **Agile Development** 🔄: I practiced Agile development methodologies throughout the project, including iterative development, continuous integration, and frequent testing.
-- **UI/UX Design** 🎨: I focused on creating an intuitive and user-friendly interface for Spend Smart, prioritizing usability and accessibility to enhance the overall user experience.
+- **Full-Stack Development** : I learned how to develop both frontend and backend components of a web application, enabling me to create a seamless user experience from start to finish.
+- **React.js** : I honed my skills in React.js, leveraging its component-based architecture to build dynamic and interactive user interfaces.
+- **Node.js and Express.js** : I became proficient in using Node.js and Express.js to create a scalable and efficient backend server, handling authentication, data storage, and API endpoints.
+- **MongoDB and Mongoose** : I learned how to work with MongoDB, a NoSQL database, and Mongoose, an object modeling tool, to store and manage data for Spend Smart.
+- **User Authentication** : I implemented secure user authentication using JWT (JSON Web Tokens), ensuring that user data remains protected and accessible only to authorized users.
+- **State Management** : I utilized Redux for state management in the frontend, enabling efficient data flow and ensuring consistency across the application.
+- **Agile Development** : I practiced Agile development methodologies throughout the project, including iterative development, continuous integration, and frequent testing.
+- **UI/UX Design** : I focused on creating an intuitive and user-friendly interface for Spend Smart, prioritizing usability and accessibility to enhance the overall user experience.
 
 By working on Spend Smart, I not only enhanced my technical skills but also gained valuable insights into the process of developing a real-world web application from concept to completion.
 
-<hr/>
 
-## License:
-
-- Spend Smart is licensed under the [MIT License](LICENSE).
-
-<hr/>
-
-## For more Content
-
-- For feedback and support, email us at saxenashourya000@gmail.com 📧
-- Follow me on [Linkedin](https://www.linkedin.com/in/saxena-shourya) for updates. 🔗
